@@ -3,23 +3,16 @@ import {Box, Button, TextField} from "@mui/material";
 
 const Form = () => {
     
-    const [url, setUrl] = useState<string>("http://localhost:5072"); 
+    const [url, setUrl] = useState<string>("http://localhost:5072/api/Rate"); 
     const [numberOfRequests, setNumberOfRequests] = useState<number>(1)
     
     const sendRequest = useCallback(() => {
         
-        return fetch(url, {
-            method: "GET",
-            mode: "no-cors",
-        }).then(response => {
-            console.log(response);
-        }).catch(reason => {
-            console.log(reason)
-        }).finally()
-        
+        return fetch(url).then((response) => response.json())
+            .then((data) => console.log(data));
     }, [url])
     
-    return <Box alignSelf={'center'} component="form" sx={{
+    return <Box alignSelf={'center'} component="form" sx={{ 
         '& .MuiTextField-root': { m: 1, width: '25ch' },
     }}>
         <TextField required={true} type="url" id="outlined-basic" label={"url"} onChange={value => setUrl(value.target.value)} value={url}/>
