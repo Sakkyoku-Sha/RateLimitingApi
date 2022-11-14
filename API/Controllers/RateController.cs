@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
+using Quorum.Hackathon.RateLimit.Concurrency;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -11,10 +12,36 @@ namespace API.Controllers
     [ApiController]
     public class RateController : ControllerBase
     {
-        RateConfig _rateConfig;
+        const string NON_PARTITION_RESOURCE = "";
 
-        public RateController(IOptions<RateConfig> rateOptions) { 
-          _rateConfig= rateOptions.Value;
+        RateConfig? _rateConfig;
+        IConcurrencyLimiter _baseLimiter;
+        Dictionary<string, IConcurrencyLimiter> _rateLimiters = new Dictionary<string, IConcurrencyLimiter>();
+
+        public RateController(IOptions<RateConfig> rateOptions)
+        {
+            _rateConfig = rateOptions.Value;
+            _baseLimiter = RateLimitUtility.GetRateLimiter(_rateConfig);
+            if (IsPartitionLimiter)
+            {
+
+                foreach (var partitionResource in _rateConfig.PartitionResources!)
+                {
+                    _rateLimiters[partitionResource.Resource] = RateLimitUtility.GetPartitionLimiter(
+                        partitionResource.Resource, partitionResource.Key, _baseLimiter);
+                }
+            }
+        }
+
+        #region Properties
+
+        bool IsPartitionLimiter => _rateConfig?.PartitionResources != null;
+
+        #endregion
+
+        IConcurrencyLimiter? GetLimiter(string strResource)
+        {
+            return _rateLimiters.ContainsKey(strResource) ? _rateLimiters[strResource] : null;
         }
 
         // GET: api/<RateController>
