@@ -11,6 +11,10 @@ builder.Services.AddSwaggerGen();
 
 var rateConfig = builder.Configuration.GetSection("RateConfig");
 builder.Services.Configure<RateConfig>(rateConfig);
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name:"AllowAnyOrigin", corsPolicyBuilder => corsPolicyBuilder.AllowAnyOrigin());
+});
 
 var app = builder.Build();
 
