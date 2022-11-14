@@ -1,3 +1,6 @@
-﻿// See https://aka.ms/new-console-template for more information
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
 
-Console.WriteLine("Hello, World!");
+app.MapGet("/", () => "Hello World!");
+
+app.Run();
