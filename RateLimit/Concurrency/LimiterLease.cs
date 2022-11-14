@@ -12,6 +12,8 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
         private bool DisposedValue;
         private RateLimitLease? LimitLease = null;
 
+        public bool IsAcquired => LimitLease?.IsAcquired ?? false;
+
         public LimiterLease(RateLimitLease? rateLimitLease) {
             LimitLease = rateLimitLease;
         }

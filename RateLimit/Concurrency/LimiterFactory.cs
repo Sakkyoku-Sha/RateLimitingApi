@@ -65,7 +65,7 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
             return new WindowRateLimiter(permitLimit, queueLimit, window, segmentsPerWindow, autoReplenish);
         }
 
-        public IConcurrencyLimiter CreatedPartitionedLimiter<TResource, TPartitionKey>(TResource resource,
+        public IConcurrencyLimiter CreatedPartitionedLimiter<TResource, TPartitionKey>(TResource resource, 
             Func<TResource, RateLimitPartition<TPartitionKey>> limiterFunc) where TPartitionKey : notnull
         {
             return new PartitionedLimiter<TResource, TPartitionKey>(resource, limiterFunc);

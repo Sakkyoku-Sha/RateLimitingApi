@@ -11,6 +11,12 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
     {
         protected RateLimiter Limiter { get; set; }
 
+        public RateLimiter GetRateLimiter() => Limiter;
+        public RateLimiterStatistics GetStatistics()
+        {
+            return Limiter.GetStatistics();
+        }
+
         public async virtual Task<ILimiterLease> WaitASync()
         {
             throw new NotImplementedException();

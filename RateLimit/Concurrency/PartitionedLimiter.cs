@@ -17,6 +17,13 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
             Resource = resource;
         }
 
+        public RateLimiter GetRateLimiter() => throw new InvalidOperationException();
+
+        public RateLimiterStatistics GetStatistics()
+        {
+            return Limiter.GetStatistics(Resource);
+        }
+
         public async Task<ILimiterLease> WaitASync()
         {
             var limiterLease = await Limiter.AcquireAsync(Resource);

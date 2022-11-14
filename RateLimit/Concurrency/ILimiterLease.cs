@@ -8,6 +8,6 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
 {
     public interface ILimiterLease : IDisposable
     {
-
+        bool IsAcquired { get; }
     }
 }
