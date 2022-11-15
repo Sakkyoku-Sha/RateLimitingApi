@@ -1,11 +1,12 @@
 using API.Config;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Primitives;
 using Quorum.Hackathon.RateLimit.Concurrency;
 using System.Diagnostics;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("appsettings.development.json");
+builder.Configuration.AddJsonFile("appsettings.json");
 
 // Add services to the container.
 
@@ -47,7 +48,49 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseRateLimiter();
+var rateLimitPartitionMap = new Dictionary<string, RateLimitPartition<string>>();
+app.UseRateLimiter(new RateLimiterOptions()
+       .AddPolicy<string>(policyName: "post", partitioner: httpContext =>
+       {
+           var headers = httpContext.Request.Headers;
+           var role = httpContext.Request.Headers["Role"].ToString().ToLower();
+           if (rateLimitPartitionMap.TryGetValue(role, out var rateLimitPartition))
+               return rateLimitPartition;
+
+           switch (role)
+           {
+               case "admin":
+                   rateLimitPartition = RateLimitPartition.GetNoLimiter("nolimit");
+                   break;
+
+               case "superuser":
+                   rateLimitPartition = RateLimitPartition.GetConcurrencyLimiter("concurrent", key =>
+                        new ConcurrencyLimiterOptions()
+                        {
+                            PermitLimit = 5,
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 1,
+                        }
+                        );
+                   break;
+               case "user":
+               default:
+                   rateLimitPartition = RateLimitPartition.GetTokenBucketLimiter("token", key =>
+                       new TokenBucketRateLimiterOptions()
+                       {
+                           TokenLimit = 5,
+                           QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                           QueueLimit = 1,
+                           ReplenishmentPeriod = TimeSpan.FromSeconds(30),
+                           TokensPerPeriod = 1
+                       });
+                   break;
+           }
+           rateLimitPartitionMap[role] = rateLimitPartition;
+           return rateLimitPartition;
+       }
+   ));
+
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

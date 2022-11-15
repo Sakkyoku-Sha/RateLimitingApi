@@ -81,7 +81,7 @@ namespace API.Controllers
                 var limiterAndConfig = _rateLimiters[limiterName];
                 var statistics = limiterAndConfig.Limiter.GetStatistics();
                 return $"Available Permits: {statistics.CurrentAvailablePermits}{Environment.NewLine}Queue Count: {statistics.CurrentQueuedCount}{Environment.NewLine}" +
-                    $"Successful Leases: {statistics.TotalSuccessfulLeases}{Environment.NewLine}Failed Leases:{statistics.TotalFailedLeases}{Environment.NewLine}";
+                    $"Successful Leases: {statistics.TotalSuccessfulLeases}{Environment.NewLine}Failed Leases: {statistics.TotalFailedLeases}{Environment.NewLine}";
             }
             return "Can't find limiter";
         } 

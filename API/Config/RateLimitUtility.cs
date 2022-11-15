@@ -36,25 +36,6 @@ namespace API.Config
             IDictionary<string, RateLimiterAndConfig> limiterMap, IDictionary<string, RateLimiter> rateLimiters)
         {
             var configuration = limiterMap[partitionConfig.LimiterName].Configuration;
-            /* if (partitionConfig.Limiter == null)
-            {
-                partitionConfig.Limiter = Factory.CreatedPartitionedLimiter<string, string>(partitionConfig.Resource, resource =>
-                RateLimitPartition.Get(strKey,
-                key =>
-                {
-                    string limiterName = GetPartitionLimiterName(partitionConfig.Resource, strKey);
-                    if (rateLimiters.ContainsKey(limiterName))
-                        return rateLimiters[limiterName];
-                    else if (partitionConfig.SharePartitionLimiter == true)
-                        return limiterMap[partitionConfig.LimiterName].Limiter.GetRateLimiter();
-                    else
-                    {
-                        var limiter = GetRateLimiter(configuration);
-                        rateLimiters[limiterName] = limiter.GetRateLimiter();
-                        return rateLimiters[limiterName];
-                    }
-                }));
-            } */
 
             return new RateLimiterAndConfig
             {
@@ -63,7 +44,7 @@ namespace API.Config
                     RateLimitPartition.Get(strKey,
                     key =>
                     {
-                        string limiterName = GetPartitionLimiterName(partitionConfig.Resource, strKey);
+                        string limiterName = GetPartitionLimiterName(partitionConfig.Resource, key);
                         if (rateLimiters.ContainsKey(limiterName))
                             return rateLimiters[limiterName];
                         else if (partitionConfig.SharePartitionLimiter == true)
