@@ -7,28 +7,50 @@ namespace API.Config
     {
         static LimiterFactory Factory = new LimiterFactory();
 
-        public static IConcurrencyLimiter GetRateLimiter(RateConfig rateConfiguration)
+        public static IDictionary<string, RateLimiterAndConfig> GetRateLimiters(RateConfig rateConfiguration)
         {
-            IConcurrencyLimiter limiter = Factory.CreateLimiter(new LimiterFactoryOptions()
+            IDictionary<string, RateLimiterAndConfig> limiterMap = new Dictionary<string, RateLimiterAndConfig>();
+            foreach (var rateConfigItem in rateConfiguration.Limiters)
             {
-                Type = rateConfiguration.Type,
-                PermitLimit = rateConfiguration.PermitLimit,
-                QueueLimit = rateConfiguration.QueueLimit,
-                ReplenishPeriod = rateConfiguration.ReplenishPeriod,
-                TokensReplenishedPerPeriod = rateConfiguration.TokensReplenishedPerPeriod,
-                AutoReplenish = rateConfiguration.AutoReplenish,
-                Window = rateConfiguration.Window,
-                SegmentsPerWindow= rateConfiguration.SegmentsPerWindow
-            });
-            
-            return limiter;
+                var limiter = GetRateLimiter(rateConfigItem);
+                limiterMap[rateConfigItem.Name] = new RateLimiterAndConfig { Limiter = limiter, Configuration = rateConfigItem };
+            }
+
+            return limiterMap;
         }
 
-        public static IConcurrencyLimiter GetPartitionLimiter(string strResource, string strKey, IConcurrencyLimiter baseLimiter)
+        static IConcurrencyLimiter GetRateLimiter(RateConfigItem rateConfigItem) => Factory.CreateLimiter(new LimiterFactoryOptions()
         {
-            return Factory.CreatedPartitionedLimiter<string, string>(strResource, resource =>
-                RateLimitPartition.Get(strKey, key => baseLimiter.GetRateLimiter()));
-        }
+            Type = rateConfigItem.Type,
+            PermitLimit = rateConfigItem.PermitLimit,
+            QueueLimit = rateConfigItem.QueueLimit,
+            ReplenishPeriod = rateConfigItem.ReplenishPeriod,
+            TokensReplenishedPerPeriod = rateConfigItem.TokensReplenishedPerPeriod,
+            AutoReplenish = rateConfigItem.AutoReplenish,
+            Window = rateConfigItem.Window,
+            SegmentsPerWindow = rateConfigItem.SegmentsPerWindow
+        });
 
+        public static RateLimiterAndConfig GetPartitionLimiter(RatePartitionConfig partitionConfig, string strKey, IDictionary<string, RateLimiterAndConfig> rateLimiters)
+        {
+            var configuration = rateLimiters[partitionConfig.LimiterName].Configuration;
+            return new RateLimiterAndConfig
+            {
+                Configuration = configuration,
+                Limiter = Factory.CreatedPartitionedLimiter<string, string>(partitionConfig.Resource, resource =>
+                RateLimitPartition.Get(strKey,
+                key =>
+                {
+                    if (partitionConfig.SharePartitionLimiter == true)
+                        return rateLimiters[partitionConfig.LimiterName].Limiter.GetRateLimiter();
+                    else
+                    {
+
+                        var limiter = GetRateLimiter(configuration);
+                        return limiter.GetRateLimiter();
+                    }
+                }))
+            };
+        }
     }
 }
