@@ -1,4 +1,5 @@
-﻿using Quorum.Hackathon.RateLimit.Concurrency;
+﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Quorum.Hackathon.RateLimit.Concurrency;
 using System.Threading.RateLimiting;
 
 namespace API.Config
@@ -31,26 +32,52 @@ namespace API.Config
             SegmentsPerWindow = rateConfigItem.SegmentsPerWindow
         });
 
-        public static RateLimiterAndConfig GetPartitionLimiter(RatePartitionConfig partitionConfig, string strKey, IDictionary<string, RateLimiterAndConfig> rateLimiters)
+        public static RateLimiterAndConfig GetPartitionLimiter(RatePartitionConfigAndLimiter partitionConfig, string strKey, 
+            IDictionary<string, RateLimiterAndConfig> limiterMap, IDictionary<string, RateLimiter> rateLimiters)
         {
-            var configuration = rateLimiters[partitionConfig.LimiterName].Configuration;
+            var configuration = limiterMap[partitionConfig.LimiterName].Configuration;
+            /* if (partitionConfig.Limiter == null)
+            {
+                partitionConfig.Limiter = Factory.CreatedPartitionedLimiter<string, string>(partitionConfig.Resource, resource =>
+                RateLimitPartition.Get(strKey,
+                key =>
+                {
+                    string limiterName = GetPartitionLimiterName(partitionConfig.Resource, strKey);
+                    if (rateLimiters.ContainsKey(limiterName))
+                        return rateLimiters[limiterName];
+                    else if (partitionConfig.SharePartitionLimiter == true)
+                        return limiterMap[partitionConfig.LimiterName].Limiter.GetRateLimiter();
+                    else
+                    {
+                        var limiter = GetRateLimiter(configuration);
+                        rateLimiters[limiterName] = limiter.GetRateLimiter();
+                        return rateLimiters[limiterName];
+                    }
+                }));
+            } */
+
             return new RateLimiterAndConfig
             {
                 Configuration = configuration,
                 Limiter = Factory.CreatedPartitionedLimiter<string, string>(partitionConfig.Resource, resource =>
-                RateLimitPartition.Get(strKey,
-                key =>
-                {
-                    if (partitionConfig.SharePartitionLimiter == true)
-                        return rateLimiters[partitionConfig.LimiterName].Limiter.GetRateLimiter();
-                    else
+                    RateLimitPartition.Get(strKey,
+                    key =>
                     {
-
-                        var limiter = GetRateLimiter(configuration);
-                        return limiter.GetRateLimiter();
-                    }
-                }))
+                        string limiterName = GetPartitionLimiterName(partitionConfig.Resource, strKey);
+                        if (rateLimiters.ContainsKey(limiterName))
+                            return rateLimiters[limiterName];
+                        else if (partitionConfig.SharePartitionLimiter == true)
+                            return limiterMap[partitionConfig.LimiterName].Limiter.GetRateLimiter();
+                        else
+                        {
+                            var limiter = GetRateLimiter(configuration);
+                            rateLimiters[limiterName] = limiter.GetRateLimiter();
+                            return rateLimiters[limiterName];
+                        }
+                    }))
             };
         }
+
+        public static string GetPartitionLimiterName(string strResource, string strKey) => $"{strResource}.{strKey}";
     }
 }

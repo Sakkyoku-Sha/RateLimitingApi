@@ -16,17 +16,21 @@ namespace API.Controllers
     {
         const string NON_PARTITION_RESOURCE = "";
 
-        RateConfig? _rateConfig;
-        IDictionary<string, RateLimiterAndConfig> _rateLimiters = null;
-        IDictionary<string, RatePartitionConfig> _partitionConfigMap = null;
+        static RateConfig? _rateConfig = null;
+        static IDictionary<string, RateLimiterAndConfig> _rateLimiters = null;
+        static IDictionary<string, RatePartitionConfigAndLimiter> _partitionMap = null;
+        static IDictionary<string, RateLimiter> _partitionRateLimiters = new Dictionary<string, RateLimiter>();
 
         public RateController(IOptions<RateConfig> rateOptions)
         {
-            _rateConfig = rateOptions.Value;
-            _rateLimiters = RateLimitUtility.GetRateLimiters(_rateConfig!);
-            if (_rateConfig.Partitions != null)
+            if (_rateConfig == null)
             {
-                _partitionConfigMap = _rateConfig.Partitions.ToDictionary(x => x.Name, x => x);
+                _rateConfig = rateOptions.Value;
+                _rateLimiters = RateLimitUtility.GetRateLimiters(_rateConfig!);
+                if (_rateConfig.Partitions != null)
+                {
+                    _partitionMap = _rateConfig.Partitions.ToDictionary(x => x.Name, x => new RatePartitionConfigAndLimiter(x));
+                }
             }
         }
 
@@ -44,26 +48,26 @@ namespace API.Controllers
         //}
 
         // GET api/<RateController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
-        {
-            return "value";
-        }
+        //[HttpGet("{id}")]
+        //public string Get(int id)
+        //{
+        //    return "value";
+        //}
 
         [HttpPost]
         [Microsoft.AspNetCore.Mvc.Route("AddPartitionLimiter")]
         public bool AddPartitionLimiter(string Partition, string Key)
         {
-            if (_partitionConfigMap.ContainsKey(Partition) == false)
+            if (_partitionMap.ContainsKey(Partition) == false)
                 return false;
 
-            var partitionConfig = _partitionConfigMap[Partition];
-            var limiterName = $"{partitionConfig.Resource}.{Key}";
+            var partitionConfig = _partitionMap[Partition];
+            var limiterName = RateLimitUtility.GetPartitionLimiterName(partitionConfig.Resource, Key);
             if (_rateLimiters.ContainsKey(limiterName))
                 return false;
 
             var rateLimiterAndConfig = RateLimitUtility.GetPartitionLimiter(partitionConfig, Key,
-                _rateLimiters);
+                _rateLimiters, _partitionRateLimiters);
             _rateLimiters[limiterName] = rateLimiterAndConfig;
             return true;
         } 
@@ -84,16 +88,14 @@ namespace API.Controllers
 
         [HttpPost]
         [Microsoft.AspNetCore.Mvc.Route("TryRateLimit")]
-        public async Task<bool> TryRateLimit(string limiterName)
+        public bool TryRateLimit(string limiterName)
         {
             bool acquiredLease = false;
             if (_rateLimiters.ContainsKey(limiterName))
             {
                 var limiterAndConfig = _rateLimiters[limiterName];
-                using (var lease = await limiterAndConfig.Limiter.WaitASync())
-                {
-                    acquiredLease = lease.IsAcquired;
-                }
+                var lease = limiterAndConfig.Limiter.AttemptAcquire();
+                acquiredLease = lease.IsAcquired;
             }
             return acquiredLease;
         }
@@ -102,9 +104,9 @@ namespace API.Controllers
 
 
         // DELETE api/<RateController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+        //[HttpDelete("{id}")]
+        //public void Delete(int id)
+        //{
+        //}
     }
 }

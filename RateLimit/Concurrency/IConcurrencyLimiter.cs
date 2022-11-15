@@ -9,6 +9,7 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
 {
     public interface IConcurrencyLimiter
     {
+        ILimiterLease AttemptAcquire();
         RateLimiter GetRateLimiter();
         RateLimiterStatistics GetStatistics();
         Task<ILimiterLease> WaitASync();

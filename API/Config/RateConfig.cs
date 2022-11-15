@@ -28,4 +28,17 @@ namespace API.Config
         public bool SharePartitionLimiter { get; set; }
         public string Resource { get; set; }
     }
+
+    public class RatePartitionConfigAndLimiter : RatePartitionConfig
+    {
+        public RatePartitionConfigAndLimiter(RatePartitionConfig config)
+        {
+            Name = config.Name;
+            LimiterName= config.LimiterName;
+            SharePartitionLimiter= config.SharePartitionLimiter;    
+            Resource = config.Resource;
+        }
+
+        public IConcurrencyLimiter? Limiter { get; set; }
+    }
 }

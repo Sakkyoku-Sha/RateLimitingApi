@@ -12,10 +12,5 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
         public RateConcurrencyLimiter(int permitLimit, int queueLimit) { 
             Limiter = new ConcurrencyLimiter(new ConcurrencyLimiterOptions() { PermitLimit = permitLimit, QueueProcessingOrder = QueueProcessingOrder.OldestFirst, QueueLimit = queueLimit });
         }
-        public override async Task<ILimiterLease> WaitASync()
-        {
-            var limiterLease = await Limiter.AcquireAsync();
-            return new LimiterLease(limiterLease);
-        }
     }
 }

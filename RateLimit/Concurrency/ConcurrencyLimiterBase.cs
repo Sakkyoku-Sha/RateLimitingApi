@@ -17,9 +17,16 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
             return Limiter.GetStatistics();
         }
 
-        public async virtual Task<ILimiterLease> WaitASync()
+        public virtual ILimiterLease AttemptAcquire()
         {
-            throw new NotImplementedException();
+            var limiterLease = Limiter.AttemptAcquire();
+            return new LimiterLease(limiterLease);
+        }
+
+        public virtual async Task<ILimiterLease> WaitASync()
+        {
+            var limiterLease = await Limiter.AcquireAsync();
+            return new LimiterLease(limiterLease);
         }
     }
 }

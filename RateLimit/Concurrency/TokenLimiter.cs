@@ -15,10 +15,5 @@ namespace Quorum.Hackathon.RateLimit.Concurrency
                 QueueLimit = queueLimit, ReplenishmentPeriod = replenishPeriod, TokensPerPeriod = tokensReplenishedPerPeriod, AutoReplenishment = autoReplenish });
         }
 
-        public override async Task<ILimiterLease> WaitASync()
-        {
-            var limiterLease = await Limiter.AcquireAsync();
-            return new LimiterLease(limiterLease);
-        }
     }
 }
